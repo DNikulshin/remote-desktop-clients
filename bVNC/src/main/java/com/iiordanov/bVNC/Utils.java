@@ -103,7 +103,7 @@ public class Utils {
     public static String[] standardPackageNames = {
             "com.iiordanov.bVNC", "com.iiordanov.freebVNC",
             "com.iiordanov.aRDP", "com.iiordanov.freeaRDP",
-            "com.iiordanov.aSPICE", "com.iiordanov.freeaSPICE"
+            "com.iiordanov.aSPICE", "com.iiordanov.freeaSPICE", "com.dnikulshin.ardp"
     };
     private static AlertDialog alertDialog;
 

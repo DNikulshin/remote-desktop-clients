@@ -4,6 +4,7 @@ android {
     compileSdkVersion compileApi
 
     defaultConfig {
+        applicationId 'com.dnikulshin.ardp'
         targetSdkVersion targetApi
         minSdkVersion project.getProperties().get("SDK_VERSION")
         multiDexEnabled true
