@@ -126,13 +126,13 @@ public class ConnectionBean extends AbstractConnectionBean implements Comparable
         setUseDpadAsArrows(useDpadAsArrows);
         setRotateDpad(false);
         setUsePortrait(false);
-        setUseLocalCursor(Constants.CURSOR_AUTO);
+        setUseLocalCursor(Constants.CURSOR_FORCE_DISABLE);
         setRepeaterId("");
         setExtraKeysToggleType(1);
         setMetaListId(1);
-        setRdpResType(0);
-        setRdpWidth(0);
-        setRdpHeight(0);
+        setRdpResType(2); // RDP_GEOM_SELECT_CUSTOM
+        setRdpWidth(260);
+        setRdpHeight(400);
         setRdpColor(Constants.DEFAULT_RDP_COLOR_MODE);
         setRemoteFx(true);
         setDesktopBackground(false);
