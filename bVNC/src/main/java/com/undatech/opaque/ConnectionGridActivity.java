@@ -429,7 +429,7 @@ public class ConnectionGridActivity extends AppCompatActivity implements GetText
      */
     public void addNewConnection() {
         DiscoveryBottomSheet sheet = DiscoveryBottomSheet.newInstance(
-                NetworkDiscovery.serviceTypeForApp(this),
+                null, // mDNS discovery disabled: only manual entry
                 new DiscoveryBottomSheet.Callback() {
                     @Override
                     public void onServerSelected(NetworkDiscovery.DiscoveredServer server) {
