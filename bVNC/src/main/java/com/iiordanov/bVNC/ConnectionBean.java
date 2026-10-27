@@ -498,6 +498,9 @@ public class ConnectionBean extends AbstractConnectionBean implements Comparable
 
     public synchronized void save(Context c) {
         Log.d(TAG, "save called");
+        if (Utils.isSharedDevice(c)) {
+            setKeepPassword(false); // shared device: never keep the password
+        }
         if (ephemeral) {
             Log.d(TAG, "save skipped: ephemeral connection");
             return;

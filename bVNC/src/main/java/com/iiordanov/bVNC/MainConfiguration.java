@@ -112,6 +112,10 @@ public abstract class MainConfiguration extends AppCompatActivity {
             passwordText.setText(selected.getPassword());
         }
         checkboxKeepPassword.setChecked(selected.getKeepPassword());
+        if (Utils.isSharedDevice(this)) {
+            checkboxKeepPassword.setChecked(false);
+            checkboxKeepPassword.setVisibility(View.GONE);
+        }
         checkboxUseDpadAsArrows.setChecked(selected.getUseDpadAsArrows());
         checkboxRotateDpad.setChecked(selected.getRotateDpad());
         checkboxUseLastPositionToolbar.setChecked(selected.getUseLastPositionToolbar());

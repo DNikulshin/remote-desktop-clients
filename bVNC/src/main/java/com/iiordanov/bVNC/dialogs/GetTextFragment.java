@@ -29,6 +29,7 @@ import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import com.iiordanov.bVNC.Utils;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
@@ -201,6 +202,9 @@ public class GetTextFragment extends DialogFragment {
                 textBox3 = (EditText) v.findViewById(R.id.textBox3);
                 hideText(textBox3);
                 textBox3.requestFocus();
+                if (Utils.isSharedDevice(inflater.getContext())) {
+                    textBox2.setVisibility(View.GONE);
+                }
                 checkboxKeepPassword = v.findViewById(R.id.checkboxKeepPassword);
                 buttonConfirm = (Button) v.findViewById(R.id.buttonConfirm);
                 buttonCancel = (Button) v.findViewById(R.id.buttonCancel);
@@ -248,7 +252,12 @@ public class GetTextFragment extends DialogFragment {
             textBox3.setText(t3);
 
         if (checkboxKeepPassword != null) {
-            checkboxKeepPassword.setChecked(keepPassword);
+            if (Utils.isSharedDevice(inflater.getContext())) {
+                checkboxKeepPassword.setChecked(false);
+                checkboxKeepPassword.setVisibility(View.GONE);
+            } else {
+                checkboxKeepPassword.setChecked(keepPassword);
+            }
         }
 
         TextView message = null;

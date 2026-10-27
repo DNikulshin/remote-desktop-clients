@@ -103,7 +103,7 @@ public class Utils {
     public static String[] standardPackageNames = {
             "com.iiordanov.bVNC", "com.iiordanov.freebVNC",
             "com.iiordanov.aRDP", "com.iiordanov.freeaRDP",
-            "com.iiordanov.aSPICE", "com.iiordanov.freeaSPICE", "com.dnikulshin.ardp"
+            "com.iiordanov.aSPICE", "com.iiordanov.freeaSPICE", "com.dnikulshin.ardp", "com.dnikulshin.ardp.shared"
     };
     private static AlertDialog alertDialog;
 
@@ -253,6 +253,10 @@ public class Utils {
             Log.e(TAG, "showMenu - exception");
             Log.e(TAG, Log.getStackTraceString(e));
         }
+    }
+
+    public static boolean isSharedDevice(Context context) {
+        return pName(context).contains("shared");
     }
 
     public static String pName(Context context) {

@@ -31,12 +31,18 @@ jobs:
           ./download-prebuilt-dependencies.sh
           ./bVNC/prepare_project.sh --skip-build libs nopath
 
-      - name: Build
+      - name: Build (personal)
         run: |
           chmod +x ./gradlew
           ./gradlew :aRDP-app:assembleDebug --stacktrace
+          cp aRDP-app/build/outputs/apk/debug/*arm64-v8a*.apk "$RUNNER_TEMP/personal-unsigned.apk"
 
-      - name: Sign APK
+      - name: Build (shared devices)
+        run: |
+          ./gradlew :aRDP-app:assembleDebug -PsharedDevice=true --stacktrace
+          cp aRDP-app/build/outputs/apk/debug/*arm64-v8a*.apk "$RUNNER_TEMP/shared-unsigned.apk"
+
+      - name: Sign APKs
         env:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -45,24 +51,42 @@ jobs:
         run: |
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
-          SRC=$(ls aRDP-app/build/outputs/apk/debug/*arm64-v8a*.apk)
-          OUT="$RUNNER_TEMP/ardp-arm64-v8a.apk"
-          "$ANDROID_HOME/build-tools/$BT/apksigner" sign \
-            --ks "$RUNNER_TEMP/release.jks" \
-            --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass env:KEYSTORE_PASSWORD \
-            --key-pass env:KEY_PASSWORD \
-            --out "$OUT" "$SRC"
-          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$OUT" | head -3
+          for v in personal shared; do
+            "$ANDROID_HOME/build-tools/$BT/apksigner" sign \
+              --ks "$RUNNER_TEMP/release.jks" \
+              --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass env:KEYSTORE_PASSWORD \
+              --key-pass env:KEY_PASSWORD \
+              --out "$RUNNER_TEMP/ardp-$v-arm64-v8a.apk" "$RUNNER_TEMP/$v-unsigned.apk"
+            "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$RUNNER_TEMP/ardp-$v-arm64-v8a.apk" | head -3
+          done
           rm -f "$RUNNER_TEMP/release.jks"
-          echo "SIGNED_APK=$OUT" >> "$GITHUB_ENV"
 
-      - name: Publish release (signed arm64 APK)
+      - name: Publish release (signed arm64 APKs)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "build-${{ github.run_number }}" "$SIGNED_APK" \
+          cat > "$RUNNER_TEMP/notes.md" <<'NOTES'
+          ## aRDP (fork): signed arm64-v8a builds
+
+          Two APKs, installed side by side if needed:
+          - ardp-personal-arm64-v8a.apk: personal devices (com.dnikulshin.ardp)
+          - ardp-shared-arm64-v8a.apk: shared devices (com.dnikulshin.ardp.shared)
+
+          ### What is new in this build
+          - Login form opens immediately when login or password is empty (no anonymous attempts)
+          - Shared variant: login form without Domain and without the Remember checkbox; the login is kept, the password is never saved; no Remember checkbox in the connection settings either
+          - Connection settings: field order is server and port, domain, login, password (both variants)
+          - Logoff on the server (Start menu or logoff command) quietly returns to the connection list
+          - Main menu (three dots): only New connection, Import/Export settings and Copy logcat
+
+          ### Install
+          - arm64-v8a only. Google Play Protect may warn about an unknown developer: tap Install anyway
+          NOTES
+          gh release create "build-${{ github.run_number }}" \
+            "$RUNNER_TEMP/ardp-personal-arm64-v8a.apk" \
+            "$RUNNER_TEMP/ardp-shared-arm64-v8a.apk" \
             --prerelease \
             --target "${{ github.sha }}" \
             --title "aRDP no-banner #${{ github.run_number }}" \
-            --notes "Signed build, branch ${{ github.ref_name }}, commit ${{ github.sha }}"
+            --notes-file "$RUNNER_TEMP/notes.md"

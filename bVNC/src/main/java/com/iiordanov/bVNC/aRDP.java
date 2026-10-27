@@ -225,6 +225,28 @@ public class aRDP extends MainConfiguration {
     private void setRdpSpecificSettingsFromSelected() {
         textUsername.setText(selected.getUserName());
         rdpDomain.setText(selected.getRdpDomain());
+        {
+            // Field order: server + port, domain, login, password
+            View userBox = textUsername;
+            while (userBox != null && !(userBox instanceof com.google.android.material.textfield.TextInputLayout)) {
+                userBox = userBox.getParent() instanceof View ? (View) userBox.getParent() : null;
+            }
+            View domainBox = rdpDomain;
+            while (domainBox != null && !(domainBox instanceof com.google.android.material.textfield.TextInputLayout)) {
+                domainBox = domainBox.getParent() instanceof View ? (View) domainBox.getParent() : null;
+            }
+            if (userBox != null && domainBox != null && userBox.getParent() == domainBox.getParent()) {
+                android.view.ViewGroup box = (android.view.ViewGroup) userBox.getParent();
+                if (box.indexOfChild(domainBox) > box.indexOfChild(userBox)) {
+                    int pos = box.indexOfChild(userBox);
+                    box.removeView(domainBox);
+                    box.addView(domainBox, pos);
+                }
+            }
+            findViewById(R.id.textPORT).setNextFocusDownId(R.id.rdpDomain);
+            rdpDomain.setNextFocusDownId(R.id.textUsername);
+            textUsername.setNextFocusDownId(R.id.textPASSWORD);
+        }
         boolean isRdpGatewayEnabled = selected.getRdpGatewayEnabled();
         rdpGatewayEnabled.setChecked(isRdpGatewayEnabled);
         layoutRdpGatewaySettings.setVisibility(isRdpGatewayEnabled ? View.VISIBLE : View.GONE);

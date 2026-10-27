@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
     <item
         android:id="@+id/actionBatteryOptimizations"
+        android:visible="false"
         android:onClick="disableBatteryOptimizations"
         android:title="@string/disable_battery_optimizations"
         app:showAsAction="never" />
@@ -14,6 +15,7 @@
         app:showAsAction="never" />
     <item
         android:id="@+id/actionMasterPassword"
+        android:visible="false"
         android:onClick="toggleMasterPassword"
         android:checkable="true"
         android:title="@string/master_password_enable"
@@ -45,6 +47,7 @@
 
     <item
         android:id="@+id/actionRateOrShare"
+        android:visible="false"
         android:icon="@android:drawable/btn_star_big_on"
         android:onClick="rateOrShare"
         android:showAsAction="never"
@@ -54,6 +57,7 @@
 
     <item
         android:id="@+id/actionEditDefaultSettings"
+        android:visible="false"
         android:icon="@android:drawable/ic_menu_preferences"
         android:onClick="editDefaultSettings"
         android:showAsAction="never"

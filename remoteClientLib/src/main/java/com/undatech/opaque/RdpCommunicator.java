@@ -42,6 +42,33 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
     private final RdpCommunicator myself;
     private final Viewable viewable;
     private SessionState session;
+
+    // Distinguish a normal end of session (logoff on the server) from a real failure.
+    private String getLastErrorText(long instance) {
+        try {
+            java.lang.reflect.Method m = LibFreeRDP.class.getDeclaredMethod("freerdp_get_last_error_string", long.class);
+            m.setAccessible(true);
+            Object r = m.invoke(null, instance);
+            return r == null ? "" : r.toString().trim();
+        } catch (Throwable t) {
+            Log.w(TAG, "Unable to get the last FreeRDP error string", t);
+            return "";
+        }
+    }
+
+    private void reportSessionEnded(long instance) {
+        String err = getLastErrorText(instance);
+        Log.v(TAG, "Session ended, last FreeRDP error: '" + err + "'");
+        String lower = err.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("logoff") || lower.contains("logging off") || lower.contains("logged off")
+                || lower.contains("was initiated") || lower.contains("rpc_initiated")) {
+            Log.v(TAG, "Sending message: DISCONNECT_NO_MESSAGE (normal end of session)");
+            handler.sendEmptyMessage(RemoteClientLibConstants.DISCONNECT_NO_MESSAGE);
+        } else {
+            Log.v(TAG, "Sending message: RDP_CONNECT_FAILURE");
+            handler.sendEmptyMessage(RemoteClientLibConstants.RDP_CONNECT_FAILURE);
+        }
+    }
     private final BookmarkBase bookmark;
     // Keeps track of libFreeRDP instance
     private final GlobalApp freeRdpApp;
@@ -396,6 +423,11 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
     }
 
     public void connect() {
+        if (this.username == null || this.username.isEmpty() || this.password == null || this.password.isEmpty()) {
+            // No saved credentials: ask for them right away instead of trying to connect anonymously.
+            handler.sendEmptyMessage(RemoteClientLibConstants.GET_RDP_CREDENTIALS);
+            return;
+        }
         session.connect(context);
     }
 
@@ -447,7 +479,7 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
         } else if (!disconnectRequested) {
             myself.setIsInNormalProtocol(false);
             Log.v(TAG, "Sending message: RDP_CONNECT_FAILURE");
-            handler.sendEmptyMessage(RemoteClientLibConstants.RDP_CONNECT_FAILURE);
+            reportSessionEnded(instance);
         }
     }
 
@@ -459,7 +491,7 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
             handler.sendEmptyMessage(RemoteClientLibConstants.RDP_UNABLE_TO_CONNECT);
         } else {
             Log.v(TAG, "Sending message: RDP_CONNECT_FAILURE");
-            handler.sendEmptyMessage(RemoteClientLibConstants.RDP_CONNECT_FAILURE);
+            reportSessionEnded(instance);
         }
     }
 
