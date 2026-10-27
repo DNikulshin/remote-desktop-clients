@@ -220,3 +220,6 @@ check_elf_alignment*
 remote-desktop-clients-libs-*
 
 venv
+
+*.jks
+*.keystore
