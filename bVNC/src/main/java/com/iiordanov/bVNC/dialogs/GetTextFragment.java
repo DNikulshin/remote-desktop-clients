@@ -47,6 +47,48 @@ import androidx.fragment.app.FragmentTransaction;
 import com.undatech.remoteClientUi.R;
 
 public class GetTextFragment extends DialogFragment {
+
+    // Adds an "eye" at the end of a password field that shows or hides the typed password.
+    private void addPasswordToggle(final EditText field) {
+        final boolean[] shown = {false};
+        final int tint = field.getCurrentHintTextColor();
+        final Runnable refresh = () -> {
+            android.graphics.drawable.Drawable icon =
+                    field.getContext().getDrawable(shown[0] ? R.drawable.ic_pw_hide : R.drawable.ic_pw_show);
+            if (icon != null) {
+                icon = icon.mutate();
+                icon.setTint(tint);
+                field.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, icon, null);
+            }
+            int selection = field.getSelectionEnd();
+            field.setTransformationMethod(shown[0]
+                    ? android.text.method.HideReturnsTransformationMethod.getInstance()
+                    : PasswordTransformationMethod.getInstance());
+            if (selection >= 0) {
+                field.setSelection(selection);
+            }
+        };
+        refresh.run();
+        field.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                android.graphics.drawable.Drawable icon = field.getCompoundDrawablesRelative()[2];
+                if (icon != null) {
+                    boolean rtl = field.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+                    int slop = (int) (12 * field.getResources().getDisplayMetrics().density);
+                    int iconWidth = icon.getBounds().width() + field.getCompoundDrawablePadding();
+                    boolean hit = rtl
+                            ? event.getX() <= field.getPaddingStart() + iconWidth + slop
+                            : event.getX() >= field.getWidth() - field.getPaddingEnd() - iconWidth - slop;
+                    if (hit) {
+                        shown[0] = !shown[0];
+                        refresh.run();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+    }
     public static final int Plaintext = 1;
     public static final int Password = 2;
     public static final int MatchingPasswordTwice = 3;
@@ -202,6 +244,7 @@ public class GetTextFragment extends DialogFragment {
                 textBox3 = (EditText) v.findViewById(R.id.textBox3);
                 hideText(textBox3);
                 textBox3.requestFocus();
+                addPasswordToggle(textBox3);
                 if (Utils.isSharedDevice(inflater.getContext())) {
                     textBox2.setVisibility(View.GONE);
                 }

@@ -79,6 +79,7 @@ jobs:
           - Connection settings: field order is server and port, domain, login, password (both variants)
           - Logoff on the server (Start menu or logoff command) quietly returns to the connection list
           - Main menu (three dots): only New connection, Import/Export settings and Copy logcat
+          - Login form: eye icon to show or hide the typed password
 
           ### Install
           - arm64-v8a only. Google Play Protect may warn about an unknown developer: tap Install anyway
