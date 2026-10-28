@@ -43,6 +43,50 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
     private final Viewable viewable;
     private SessionState session;
 
+    // Why the last login was rejected: wrong, locked, disabled, expired or denied (null = unknown).
+    private String authErrorKind = null;
+
+    private boolean credentialsWereProvided() {
+        return this.username != null && !this.username.isEmpty()
+                && this.password != null && !this.password.isEmpty();
+    }
+
+    private static String classifyAuthError(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String s = raw.toLowerCase(java.util.Locale.ROOT);
+        if (s.contains("locked")) {
+            return "locked";
+        }
+        if (s.contains("disabled") || (s.contains("account") && s.contains("expired"))) {
+            return "disabled";
+        }
+        if (s.contains("expired") || s.contains("must be changed") || s.contains("must_change")) {
+            return "expired";
+        }
+        if (s.contains("insufficient") || s.contains("privilege") || s.contains("not_granted")
+                || s.contains("not granted") || s.contains("access_denied") || s.contains("access denied")) {
+            return "denied";
+        }
+        if (s.contains("wrong") || s.contains("authentication") || s.contains("logon_failure")
+                || s.contains("logon failure")) {
+            return "wrong";
+        }
+        return null;
+    }
+
+    private void sendCredentialsRequest(String kind) {
+        Log.v(TAG, "Sending message: GET_RDP_CREDENTIALS, auth error: " + kind);
+        Message m = handler.obtainMessage(RemoteClientLibConstants.GET_RDP_CREDENTIALS);
+        if (kind != null) {
+            Bundle b = new Bundle();
+            b.putString("authError", kind);
+            m.setData(b);
+        }
+        handler.sendMessage(m);
+    }
+
     // Distinguish a normal end of session (logoff on the server) from a real failure.
     private String getLastErrorText(long instance) {
         try {
@@ -461,15 +505,28 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
                 ", authenticationAttempted: " + authenticationAttempted +
                 ", disconnectRequested: " + disconnectRequested +
                 ", isInNormalProtocol: " + myself.isInNormalProtocol());
+        if (!myself.isInNormalProtocol() && !disconnectRequested) {
+            String rawError = getLastErrorText(instance);
+            String kind = classifyAuthError(rawError);
+            Log.v(TAG, "Auth failed, last FreeRDP error: '" + rawError + "', recognized as: " + kind);
+            if (kind != null && authErrorKind == null) {
+                authErrorKind = kind;
+            }
+        }
         if (reattemptWithoutCredentials && !myself.isInNormalProtocol()) {
             reattemptWithoutCredentials = false;
             // It could be bad credentials that caused the disconnection, so trying to connect
             // once again with no credentials before reporting the type of failure.
+            if (authErrorKind != null && credentialsWereProvided()) {
+                // The server has already told why the login was rejected: no point in an anonymous retry.
+                sendCredentialsRequest(authErrorKind);
+                return;
+            }
             initSession(null, "", "", "");
             connect();
         } else if (authenticationAttempted && !myself.isInNormalProtocol()) {
             Log.v(TAG, "Sending message: GET_RDP_CREDENTIALS");
-            handler.sendEmptyMessage(RemoteClientLibConstants.GET_RDP_CREDENTIALS);
+            sendCredentialsRequest(credentialsWereProvided() ? (authErrorKind != null ? authErrorKind : "wrong") : null);
         } else if (gatewayAuthenticationAttempted && !myself.isInNormalProtocol()) {
             Log.v(TAG, "Sending message: GET_RDP_GATEWAY_CREDENTIALS");
             handler.sendEmptyMessage(RemoteClientLibConstants.GET_RDP_GATEWAY_CREDENTIALS);

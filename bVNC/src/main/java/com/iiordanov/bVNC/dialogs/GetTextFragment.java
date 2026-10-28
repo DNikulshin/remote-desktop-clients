@@ -48,6 +48,36 @@ import com.undatech.remoteClientUi.R;
 
 public class GetTextFragment extends DialogFragment {
 
+    // Shows why the previous login was rejected (red text above the title); the password is passed empty.
+    private void showAuthError(View v) {
+        Bundle a = getArguments();
+        String kind = a == null ? null : a.getString("authError");
+        TextView authError = v.findViewById(R.id.authError);
+        if (kind == null || authError == null) {
+            return;
+        }
+        int res;
+        switch (kind) {
+            case "locked":
+                res = R.string.rdp_auth_error_locked;
+                break;
+            case "disabled":
+                res = R.string.rdp_auth_error_disabled;
+                break;
+            case "expired":
+                res = R.string.rdp_auth_error_password_expired;
+                break;
+            case "denied":
+                res = R.string.rdp_auth_error_no_rights;
+                break;
+            default:
+                res = R.string.rdp_auth_error_wrong;
+                break;
+        }
+        authError.setText(res);
+        authError.setVisibility(View.VISIBLE);
+    }
+
     // Adds an "eye" at the end of a password field that shows or hides the typed password.
     private void addPasswordToggle(final EditText field) {
         final boolean[] shown = {false};
@@ -245,6 +275,7 @@ public class GetTextFragment extends DialogFragment {
                 hideText(textBox3);
                 textBox3.requestFocus();
                 addPasswordToggle(textBox3);
+                showAuthError(v);
                 if (Utils.isSharedDevice(inflater.getContext())) {
                     textBox2.setVisibility(View.GONE);
                 }

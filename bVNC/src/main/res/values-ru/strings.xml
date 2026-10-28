@@ -965,4 +965,9 @@
     <string name="morpheusly_cta_download">Получить Morpheusly</string>
     <string name="connection_add_shortcut">Добавить на главный экран</string>
     <string name="shortcut_not_supported">Этот лаунчер не поддерживает закрепление ярлыков.</string>
+    <string name="rdp_auth_error_wrong">Неверный логин или пароль</string>
+    <string name="rdp_auth_error_locked">Учётная запись заблокирована</string>
+    <string name="rdp_auth_error_disabled">Учётная запись отключена</string>
+    <string name="rdp_auth_error_password_expired">Срок действия пароля истёк</string>
+    <string name="rdp_auth_error_no_rights">Нет прав для удалённого входа на сервер</string>
 </resources>
