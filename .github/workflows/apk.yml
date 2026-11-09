@@ -2,7 +2,7 @@ name: apk
 
 on:
   push:
-    branches: [no-donate-banner]
+    branches: [no-donate-banner, auth-error-details]
   workflow_dispatch:
 
 jobs:
