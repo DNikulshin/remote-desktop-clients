@@ -75,7 +75,8 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
         if (s.contains("password") && (s.contains("expired") || s.contains("must be changed"))) {
             return "expired";
         }
-        if (s.contains("wrong password") || s.contains("credentials invalid") || s.contains("logon failure")) {
+        if (s.contains("wrong password") || s.contains("credentials invalid") || s.contains("logon failure")
+                || s.contains("logon failed")) {
             return "wrong";
         }
         if (s.contains("logon type not granted") || s.contains("insufficient") || s.contains("access denied")
