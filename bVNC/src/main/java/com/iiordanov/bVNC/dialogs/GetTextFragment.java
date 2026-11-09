@@ -70,12 +70,40 @@ public class GetTextFragment extends DialogFragment {
             case "denied":
                 res = R.string.rdp_auth_error_no_rights;
                 break;
+            case "auth":
+                res = R.string.rdp_auth_error_auth;
+                break;
+            case "server":
+                res = R.string.rdp_auth_error_server;
+                break;
+            case "unknown":
+                res = R.string.rdp_auth_error_unknown;
+                break;
             default:
                 res = R.string.rdp_auth_error_wrong;
                 break;
         }
         authError.setText(res);
         authError.setVisibility(View.VISIBLE);
+        showAuthServer(v, a);
+    }
+
+    // Shows which server was being contacted when the login failed.
+    private void showAuthServer(View v, Bundle a) {
+        TextView authServer = v.findViewById(R.id.authServer);
+        String server = a.getString("authServer");
+        if (authServer == null || server == null) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder(getString(R.string.rdp_auth_server, server));
+        String target = a.getString("authTarget");
+        if (target != null) {
+            sb.append('\n').append(getString(R.string.rdp_auth_target_server, target));
+        } else if (a.getBoolean("authTargetUnknown", false)) {
+            sb.append('\n').append(getString(R.string.rdp_auth_target_unknown));
+        }
+        authServer.setText(sb.toString());
+        authServer.setVisibility(View.VISIBLE);
     }
 
     // Adds an "eye" at the end of a password field that shows or hides the typed password.

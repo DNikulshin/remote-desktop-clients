@@ -43,35 +43,52 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
     private final Viewable viewable;
     private SessionState session;
 
-    // Why the last login was rejected: wrong, locked, disabled, expired or denied (null = unknown).
+    // Why the last connection attempt failed: wrong (credentials rejected), locked, disabled, expired,
+    // denied, auth (generic authentication failure, may be a server problem), server (the server or the
+    // transport failed) or null (unknown).
     private String authErrorKind = null;
+    // Server certificates shown so far: the first one belongs to the entry server (the broker), the
+    // second one to the server the broker redirected to. Used to tell which server was reached.
+    private int certificatesSeen = 0;
+    private String firstCertName = null;
+    private String lastCertName = null;
 
     private boolean credentialsWereProvided() {
         return this.username != null && !this.username.isEmpty()
                 && this.password != null && !this.password.isEmpty();
     }
 
-    private static String classifyAuthError(String raw) {
+    // Matches the texts FreeRDP 2.x returns from freerdp_get_last_error_string().
+    // Only explicit credential errors are reported as "wrong"; everything that points at the
+    // server or the connection is reported separately, so a broken server is not blamed on the user.
+    static String classifyAuthError(String raw) {
         if (raw == null) {
             return null;
         }
         String s = raw.toLowerCase(java.util.Locale.ROOT);
-        if (s.contains("locked")) {
+        if (s.contains("locked out")) {
             return "locked";
         }
-        if (s.contains("disabled") || (s.contains("account") && s.contains("expired"))) {
+        if (s.contains("account is disabled") || s.contains("account expired")) {
             return "disabled";
         }
-        if (s.contains("expired") || s.contains("must be changed") || s.contains("must_change")) {
+        if (s.contains("password") && (s.contains("expired") || s.contains("must be changed"))) {
             return "expired";
         }
-        if (s.contains("insufficient") || s.contains("privilege") || s.contains("not_granted")
-                || s.contains("not granted") || s.contains("access_denied") || s.contains("access denied")) {
+        if (s.contains("wrong password") || s.contains("credentials invalid") || s.contains("logon failure")) {
+            return "wrong";
+        }
+        if (s.contains("logon type not granted") || s.contains("insufficient") || s.contains("access denied")
+                || s.contains("account restriction")) {
             return "denied";
         }
-        if (s.contains("wrong") || s.contains("authentication") || s.contains("logon_failure")
-                || s.contains("logon failure")) {
-            return "wrong";
+        if (s.contains("authentication failure")) {
+            return "auth";
+        }
+        if (s.contains("transport layer") || s.contains("connection failed") || s.contains("undefined connection error")
+                || s.contains("peer connection was lost") || s.contains("kdc is unreachable")
+                || s.contains("security negotiation") || s.contains("connection broker")) {
+            return "server";
         }
         return null;
     }
@@ -82,6 +99,13 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
         if (kind != null) {
             Bundle b = new Bundle();
             b.putString("authError", kind);
+            // Which server was being contacted: the entry server, the redirect target when it is known.
+            b.putString("authServer", connection.getAddress() + ":" + connection.getPort());
+            if (certificatesSeen >= 2 && lastCertName != null && !lastCertName.equals(firstCertName)) {
+                b.putString("authTarget", lastCertName);
+            } else if (certificatesSeen == 1 && ("server".equals(kind) || "auth".equals(kind) || "unknown".equals(kind))) {
+                b.putBoolean("authTargetUnknown", true);
+            }
             m.setData(b);
         }
         handler.sendMessage(m);
@@ -526,7 +550,7 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
             connect();
         } else if (authenticationAttempted && !myself.isInNormalProtocol()) {
             Log.v(TAG, "Sending message: GET_RDP_CREDENTIALS");
-            sendCredentialsRequest(credentialsWereProvided() ? (authErrorKind != null ? authErrorKind : "wrong") : null);
+            sendCredentialsRequest(credentialsWereProvided() ? (authErrorKind != null ? authErrorKind : "unknown") : null);
         } else if (gatewayAuthenticationAttempted && !myself.isInNormalProtocol()) {
             Log.v(TAG, "Sending message: GET_RDP_GATEWAY_CREDENTIALS");
             handler.sendEmptyMessage(RemoteClientLibConstants.GET_RDP_GATEWAY_CREDENTIALS);
@@ -613,6 +637,13 @@ public class RdpCommunicator extends RfbConnectable implements RdpKeyboardMapper
     public int OnVerifiyCertificate(String commonName, String subject,
                                     String issuer, String fingerprint, boolean mismatch) {
         Log.d(TAG, "OnVerifiyCertificate called.");
+        certificatesSeen++;
+        String certName = commonName != null && !commonName.isEmpty() ? commonName : subject;
+        if (certificatesSeen == 1) {
+            firstCertName = certName;
+        }
+        lastCertName = certName;
+        Log.v(TAG, "Certificate #" + certificatesSeen + " seen for: " + certName);
 
         // Send a message containing the certificate to our handler.
         Message m = new Message();

@@ -1012,4 +1012,10 @@ Below that is where you configure your connection.
     <string name="rdp_auth_error_disabled">Account is disabled</string>
     <string name="rdp_auth_error_password_expired">Password has expired</string>
     <string name="rdp_auth_error_no_rights">No permission for remote logon to the server</string>
+    <string name="rdp_auth_error_auth">Authentication failed. Check your login and password; if they are correct, the server may have a problem</string>
+    <string name="rdp_auth_error_server">Could not connect to the server. Try again later</string>
+    <string name="rdp_auth_error_unknown">Login failed. There may be a server or network problem</string>
+    <string name="rdp_auth_server">Server: %1$s</string>
+    <string name="rdp_auth_target_server">Target server: %1$s</string>
+    <string name="rdp_auth_target_unknown">Target server is not known (the failure happened before its certificate was checked)</string>
 </resources>

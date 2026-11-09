@@ -47,6 +47,7 @@ public class RemoteCanvasHandler extends Handler implements HttpsFileDownloader.
     RemoteConnection remoteConnection;
     private final Connection connection;
     private String pendingAuthError = null;
+    private Bundle pendingAuthDetails = null;
     private FragmentManager fm;
     CredentialsObtainer obtainer;
     Runnable setModes;
@@ -118,7 +119,11 @@ public class RemoteCanvasHandler extends Handler implements HttpsFileDownloader.
                 dialogType, messageNum, errorNum, t1, t2, t3, keep);
         if (pendingAuthError != null) {
             frag.getArguments().putString("authError", pendingAuthError);
+            if (pendingAuthDetails != null) {
+                frag.getArguments().putAll(pendingAuthDetails);
+            }
             pendingAuthError = null;
+            pendingAuthDetails = null;
         }
         frag.setCancelable(false);
         frag.show(fm, tag);
@@ -438,10 +443,17 @@ public class RemoteCanvasHandler extends Handler implements HttpsFileDownloader.
             case RemoteClientLibConstants.GET_RDP_CREDENTIALS:
                 String rdpAuthError = msg.getData() != null ? msg.getData().getString("authError") : null;
                 if (rdpAuthError != null) {
-                    // The login was rejected: forget the saved password so that it is not sent again.
-                    connection.setPassword("");
-                    connection.save(context);
+                    // Forget the saved password only when it is known to be bad; a server or network
+                    // problem must not make the user retype a correct password.
+                    if ("wrong".equals(rdpAuthError) || "expired".equals(rdpAuthError)) {
+                        connection.setPassword("");
+                        connection.save(context);
+                    }
                     pendingAuthError = rdpAuthError;
+                    pendingAuthDetails = new Bundle();
+                    pendingAuthDetails.putString("authServer", msg.getData().getString("authServer"));
+                    pendingAuthDetails.putString("authTarget", msg.getData().getString("authTarget"));
+                    pendingAuthDetails.putBoolean("authTargetUnknown", msg.getData().getBoolean("authTargetUnknown", false));
                 }
                 showGetTextFragment(context.getString(R.string.enter_rdp_credentials),
                         GetTextFragment.DIALOG_ID_GET_RDP_CREDENTIALS,
