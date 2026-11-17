@@ -1,0 +1,39 @@
+name: verify-build
+
+# Temporary: compiles the PR branch in the fork. Not part of the pull request.
+# Master's AGP 9.4.1 breaks the downloaded FreeRDP project at configuration time
+# (`getDefaultProguardFile('proguard-android.txt')`), so this branch also reverts
+# 1c672e50 back to AGP 8.13.2 / Gradle 8.13 to reach compilation at all.
+on:
+  push:
+    branches: ['ci/**']
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Accept Android licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Prebuilt dependencies
+        run: |
+          chmod +x ./download-prebuilt-dependencies.sh ./bVNC/prepare_project.sh
+          ./download-prebuilt-dependencies.sh
+          ./bVNC/prepare_project.sh --skip-build libs nopath
+
+      - name: Compile aRDP (debug)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :aRDP-app:assembleDebug --stacktrace
